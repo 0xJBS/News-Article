@@ -1,140 +1,227 @@
 import os
+import re
 import string
 import zipfile
 import xml.etree.ElementTree as ET
 
-
 FILE_PATH = r"D:\Moringa\Module4\Assignments\News_Article\News Article for Python Assessment.docx"
 
 
-def read_docx_file(file_path: str) -> str:
-    """Extracts raw text from a DOCX file using built-in zip/xml parsers."""
+# --------------------------------------------------
+# READ DOCX FILE
+# --------------------------------------------------
+def read_docx_file(file_path):
+    """Reads text from a DOCX file."""
+
     if not os.path.exists(file_path):
         return ""
+
     try:
-        with zipfile.ZipFile(file_path) as docx_zip:
-            xml_content = docx_zip.read('word/document.xml')
+        with zipfile.ZipFile(file_path) as docx:
+            xml_content = docx.read("word/document.xml")
+
         root = ET.fromstring(xml_content)
-        namespaces = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
-        
+
+        namespace = {
+            "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        }
+
         paragraphs = []
-        #   Loop"
-        for paragraph in root.findall('.//w:p', namespaces):
-            text_runs = [node.text for node in paragraph.findall('.//w:t', namespaces) if node.text]
-            if text_runs:
-                combined_text = "".join(text_runs).strip()
-                if combined_text and not combined_text.startswith("[source:"):
-                    paragraphs.append(combined_text)
-                    
+
+        for paragraph in root.findall(".//w:p", namespace):
+
+            text = ""
+
+            for run in paragraph.findall(".//w:t", namespace):
+
+                if run.text:
+                    text += run.text
+
+            if text.strip():
+                paragraphs.append(text.strip())
+
         return "\n\n".join(paragraphs)
+
     except Exception:
         return ""
 
 
+# --------------------------------------------------
+# COUNT SPECIFIC WORD
+# --------------------------------------------------
+def count_specific_word(text, search_word):
+    """
+    Counts how many times a word appears.
 
+    Returns:
+        int
+    """
 
-def count_specific_word(text: str, search_word: str) -> int:
-    """Counts occurrences of a word. Edge case: empty/no match returns 0."""
-    # Conditional Value" (Explicit If/Else)
-    if not text or not search_word:
+    if text == "" or search_word == "":
         return 0
-    else:
-        # Lowercase and strip punctuation characters 
-        cleaned_text = text.lower().translate(str.maketrans('', '', string.punctuation))
-        words = cleaned_text.split()
-        return words.count(search_word.lower())
+
+    words = text.lower().split()
+
+    count = 0
+
+    for word in words:
+
+        cleaned_word = word.strip(string.punctuation)
+
+        if cleaned_word == search_word.lower():
+            count += 1
+
+    return count
 
 
-def identify_most_common_word(text: str) -> str or None:
-    """Identifies the most common word. Edge case: empty string returns None."""
-    if not text.strip():
+# --------------------------------------------------
+# IDENTIFY MOST COMMON WORD
+# --------------------------------------------------
+def identify_most_common_word(text):
+    """
+    Returns the most common word.
+
+    Returns:
+        str
+    """
+
+    if text.strip() == "":
         return None
-    else:
-        cleaned_text = text.lower().translate(str.maketrans('', '', string.punctuation))
-        words = cleaned_text.split()
-        if not words:
-            return None
+
+    words = re.findall(r"\b\w+\b", text.lower())
+
+    frequency = {}
+
+    for word in words:
+
+        if word in frequency:
+            frequency[word] += 1
         else:
-            return max(set(words), key=words.count)
+            frequency[word] = 1
+
+    most_common = None
+    highest = 0
+
+    for word in frequency:
+
+        if frequency[word] > highest:
+            highest = frequency[word]
+            most_common = word
+
+    return most_common
 
 
-def calculate_average_word_length(text: str) -> float:
-    """Calculates average word length as float, excluding punctuation. Empty returns 0.0."""
-    if not text.strip():
+# --------------------------------------------------
+# CALCULATE AVERAGE WORD LENGTH
+# --------------------------------------------------
+def calculate_average_word_length(text):
+    """
+    Returns average word length.
+
+    Returns:
+        float
+    """
+
+    if text.strip() == "":
         return 0.0
-    else:
-        cleaned_text = text.translate(str.maketrans('', '', string.punctuation))
-        words = cleaned_text.split()
-        if not words:
-            return 0.0
-        else:
-            total_chars = sum(len(word) for word in words)
-            return float(total_chars / len(words))
+
+    words = re.findall(r"\b\w+\b", text)
+
+    if len(words) == 0:
+        return 0.0
+
+    total = 0
+
+    for word in words:
+        total += len(word)
+
+    average = total / len(words)
+
+    return float(average)
 
 
-def count_paragraphs(text: str) -> int:
-    """Counts paragraphs based on empty lines. Edge case: empty string returns 1."""
-    if not text.strip():
+# --------------------------------------------------
+# COUNT PARAGRAPHS
+# --------------------------------------------------
+def count_paragraphs(text):
+    """
+    Counts paragraphs separated by blank lines.
+
+    Returns:
+        int
+    """
+
+    if text.strip() == "":
         return 1
-    else:
-        paragraphs = [p for p in text.split('\n\n') if p.strip()]
-        return len(paragraphs)
+
+    paragraphs = text.split("\n\n")
+
+    count = 0
+
+    for paragraph in paragraphs:
+
+        if paragraph.strip() != "":
+            count += 1
+
+    return count
 
 
-def count_sentences(text: str) -> int:
-    """Counts sentences using a while loop. Edge case: empty string returns 1."""
-    if not text.strip():
+# --------------------------------------------------
+# COUNT SENTENCES
+# --------------------------------------------------
+def count_sentences(text):
+    """
+    Counts sentences using . ! ?
+
+    Returns:
+        int
+    """
+
+    if text.strip() == "":
         return 1
-    else:
-        sentence_endings = ('.', '!', '?')
-        count = 0
-        index = 0
-        text_length = len(text)
-        
-        # While Loop
-        while index < text_length:
-            if text[index] in sentence_endings:
-                count += 1
-            index += 1
-            
-        if count > 0:
-            return count
-        else:
-            return 1
+
+    count = 0
+
+    index = 0
+
+    while index < len(text):
+
+        if text[index] == ".":
+            count += 1
+
+        elif text[index] == "!":
+            count += 1
+
+        elif text[index] == "?":
+            count += 1
+
+        index += 1
+
+    return count
 
 
+# --------------------------------------------------
+# MAIN
+# --------------------------------------------------
 def main():
-    print("=========================================")
-    print("      TEXT ANALYSIS REPORT GENERATOR     ")
-    print("=========================================\n")
-    
-    # Extract file text
-    article_text = read_docx_file(FILE_PATH)
-    
-    if not article_text:
-        print(f"Error reading file at: {FILE_PATH}")
+
+    print("=" * 45)
+    print("      TEXT ANALYSIS REPORT GENERATOR")
+    print("=" * 45)
+
+    article = read_docx_file(FILE_PATH)
+
+    if article == "":
+        print("Unable to read the file.")
         return
 
-    # 1. Count Specific Word
-    search_term = "Apple"
-    word_count = count_specific_word(article_text, search_term)
-    print(f"1. Occurrence of the word '{search_term}': {word_count}")
-    
-    # 2. Identify Most Common Word
-    common_word = identify_most_common_word(article_text)
-    print(f"2. Most Common Word: '{common_word}'")
-    
-    # 3. Calculate Average Word Length
-    avg_length = calculate_average_word_length(article_text)
-    print(f"3. Average Word Length: {avg_length:.2f} characters")
-    
-    # 4. Count Paragraphs
-    paragraph_count = count_paragraphs(article_text)
-    print(f"4. Total Number of Paragraphs: {paragraph_count}")
-    
-    # 5. Count Sentences
-    sentence_count = count_sentences(article_text)
-    print(f"5. Total Number of Sentences: {sentence_count}")
+    search_word = "Apple"
+
+    print(f"\n1. Occurrence of '{search_word}': {count_specific_word(article, search_word)}")
+    print(f"2. Most Common Word: {identify_most_common_word(article)}")
+    print(f"3. Average Word Length: {calculate_average_word_length(article):.2f}")
+    print(f"4. Total Number of Paragraphs: {count_paragraphs(article)}")
+    print(f"5. Total Number of Sentences: {count_sentences(article)}")
 
 
 if __name__ == "__main__":
